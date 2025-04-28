@@ -1,0 +1,249 @@
+-- Place this script inside StarterPlayer > StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+-- Settings
+local menuOpen = true  -- Start with menu open
+local aimbotActive = false  -- Aimbot is off initially
+local boxEspEnabled = true  -- Box ESP is on initially
+local drawEspLinesEnabled = true  -- Draw ESP lines is on initially
+local menuSize = UDim2.new(0, 800, 0, 600)  -- Larger menu size (800x600)
+local menuPosition = UDim2.new(0.5, -400, 0.5, -300)  -- Center position for the larger menu
+
+-- Create the basic Menu UI
+local menuGui = Instance.new("ScreenGui")
+menuGui.Name = "Menu"
+menuGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+menuGui.ResetOnSpawn = false
+
+-- Create the Menu Frame (Blue background)
+local menuFrame = Instance.new("Frame")
+menuFrame.Size = menuSize
+menuFrame.Position = menuPosition
+menuFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 255)  -- Blue color for the menu
+menuFrame.BackgroundTransparency = 0.5  -- Transparency level of the menu
+menuFrame.Parent = menuGui
+
+-- Title Text (Red text color, large font)
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(0, 800, 0, 80)
+titleText.Position = UDim2.new(0, 0, 0, 0)
+titleText.Text = "Hello, Welcome to GoodBoy Hub!"
+titleText.TextColor3 = Color3.fromRGB(255, 0, 0)  -- Red text color
+titleText.TextSize = 36  -- Larger font size
+titleText.BackgroundTransparency = 1  -- No background for text
+titleText.Parent = menuFrame
+
+-- List of features (Red text color)
+local espListText = Instance.new("TextLabel")
+espListText.Size = UDim2.new(0, 800, 0, 520)  -- Adjust size for the list
+espListText.Position = UDim2.new(0, 0, 0, 80)
+espListText.Text = "You Have Now:\nBox ESP\nDraw ESP Lines\nFOV ESP Circle\nAimbot\nPress G to Toggle Aimbot!\nPress F1 or P to Close UI\nPress T to Disable Box and Draw Lines ESP!"
+espListText.TextColor3 = Color3.fromRGB(255, 0, 0)  -- Red text color
+espListText.TextSize = 28  -- Medium font size
+espListText.BackgroundTransparency = 1  -- No background for text
+espListText.TextWrapped = true  -- Allow text to wrap for longer lines
+espListText.Parent = menuFrame
+
+-- Function to close the menu when F1 or P is pressed
+local function closeMenu()
+    menuOpen = false
+    menuGui.Enabled = false  -- Disable the menu
+end
+
+-- Function to toggle aimbot
+local function toggleAimbot()
+    aimbotActive = not aimbotActive
+    if aimbotActive then
+        print("Aimbot is ON")
+    else
+        print("Aimbot is OFF")
+    end
+end
+
+-- Function to disable Box ESP and Draw Lines ESP
+local function disableEsp()
+    boxEspEnabled = false
+    drawEspLinesEnabled = false
+    print("Box ESP and Draw ESP Lines are now DISABLED")
+end
+
+-- Detect when the player presses keys
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    -- Close the menu when F1 or P is pressed
+    if input.KeyCode == Enum.KeyCode.F1 or input.KeyCode == Enum.KeyCode.P then
+        closeMenu()
+    end
+
+    -- Toggle aimbot when G is pressed
+    if input.KeyCode == Enum.KeyCode.G then
+        toggleAimbot()
+    end
+
+    -- Disable Box ESP and Draw Lines ESP when T is pressed
+    if input.KeyCode == Enum.KeyCode.T then
+        disableEsp()
+    end
+end)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+local ESP_Enabled = true
+local espObjects = {}
+
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.T then
+		ESP_Enabled = not ESP_Enabled
+		print("ESP Toggled:", ESP_Enabled)
+	end
+end)
+
+
+local function clearESP()
+	for _, objs in pairs(espObjects) do
+		if objs.Box then objs.Box:Remove() end
+		if objs.Line then objs.Line:Remove() end
+	end
+	table.clear(espObjects)
+end
+
+
+local function createESP()
+	local box = Drawing.new("Square")
+	box.Color = Color3.fromRGB(255, 255, 0) -- Yellow Box
+	box.Thickness = 1
+	box.Filled = false
+	box.Transparency = 0.9
+	box.Visible = true
+
+	local line = Drawing.new("Line")
+	line.Color = Color3.fromRGB(255, 255, 0) -- Yellow Line
+	line.Thickness = 1
+	line.Transparency = 0.9
+	line.Visible = true
+
+	return {Box = box, Line = line}
+end
+
+
+RunService.RenderStepped:Connect(function()
+	clearESP()
+
+	if not ESP_Enabled then return end
+
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("HumanoidRootPart") then
+			local head = player.Character.Head
+			local root = player.Character.HumanoidRootPart
+
+			local topPos, onScreenTop = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+			local bottomPos, onScreenBottom = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 2.5, 0))
+
+			if onScreenTop and onScreenBottom then
+				local height = math.abs(topPos.Y - bottomPos.Y)
+				local width = height / 2
+
+				local esp = createESP()
+
+				
+				esp.Box.Size = Vector2.new(width, height)
+				esp.Box.Position = Vector2.new(topPos.X - width / 2, topPos.Y)
+				esp.Box.Visible = true
+
+				
+				esp.Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+				esp.Line.To = Vector2.new(topPos.X, topPos.Y)
+				esp.Line.Visible = true
+
+				table.insert(espObjects, esp)
+			end
+		end
+	end
+end)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local localPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+
+local fovRadius = 150  -- FOV circle radius
+local aimbotEnabled = false  -- Initially aimbot is off
+
+
+local fovCircle = Drawing.new("Circle")
+fovCircle.Radius = fovRadius
+fovCircle.Thickness = 2
+fovCircle.Color = Color3.fromRGB(255, 255, 0)  -- Yellow color for FOV
+fovCircle.Transparency = 0.6
+fovCircle.Filled = false
+fovCircle.Visible = true
+
+
+RunService.RenderStepped:Connect(function()
+    local mouseLocation = UserInputService:GetMouseLocation()
+    fovCircle.Position = Vector2.new(mouseLocation.X, mouseLocation.Y)
+end)
+
+-- Toggle aimbot when G key is held down
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.G then
+        aimbotEnabled = true
+        print("Aimbot ON")
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.G then
+        aimbotEnabled = false
+        print("Aimbot OFF")
+    end
+end)
+
+
+local function getClosestPlayer()
+    local mouseLocation = UserInputService:GetMouseLocation()
+    local closestPlayer = nil
+    local shortestDistance = fovRadius
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
+            if onScreen then
+                local distance = (Vector2.new(screenPos.X, screenPos.Y) - mouseLocation).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = player
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+
+RunService.RenderStepped:Connect(function()
+    if aimbotEnabled then
+        local target = getClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            camera.CFrame = CFrame.new(camera.CFrame.Position, target.Character.Head.Position)
+        end
+    end
+end)
+
+
+
+
+
